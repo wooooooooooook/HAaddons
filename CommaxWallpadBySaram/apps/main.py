@@ -468,13 +468,13 @@ class WallpadController:
                 current_time = time.time_ns()
                 last_recv = self.COLLECTDATA['LastRecv']
                 
-                if current_time - last_recv > elfin_reboot_interval * 1_000_000_000:  # 초를 나노초로 변환
+                if current_time - last_recv > elfin_reboot_interval * 1000000000:  # 초를 나노초로 변환
                     self.logger.warning(f'{elfin_reboot_interval}초간 신호를 받지 못했습니다.')
                     if (self.config.get("elfin_auto_reboot",True)):
                         self.logger.warning('EW11 재시작을 시도합니다.')
                         await self.reboot_elfin_device()
                     self.COLLECTDATA['LastRecv'] = time.time_ns()
-                if current_time - last_recv > 100_000_000:  # 100ms를 나노초로 변환
+                if current_time - last_recv > 100000000:  # 100ms를 나노초로 변환
                     # await self.process_queue()
                     await self.process_queue_socket()
 
@@ -502,6 +502,23 @@ class WallpadController:
             else:
                 self.logger.signal(f'5회 이상 전송 실패. 큐에서 제거: {send_data}')
 
+    async def process_queue_socket(self):
+        """큐의 명령을 소켓을 통해 전송"""
+        if self.QUEUE:
+            send_data = self.QUEUE.pop(0)
+            self.logger.signal(f'신호 전송: {send_data}')
+            
+            # MQTT 대신 소켓으로 직접 전송
+            try:
+                self.socket.send(bytes.fromhex(send_data['sendcmd']))
+                if send_data['count'] < 5:
+                    send_data['count'] += 1
+                    self.QUEUE.append(send_data)
+                else:
+                    self.logger.signal(f'5회 이상 전송 실패. 큐에서 제거: {send_data}')
+            except Exception as e:
+                self.logger.error(f"Socket 전송 오류: {str(e)}")
+                self.QUEUE.append(send_data)
     async def process_elfin_data(self, raw_data):
         try:            
             for k in range(0, len(raw_data), 16):
@@ -777,23 +794,6 @@ class WallpadController:
                 self.logger.error(f"Socket 데이터 읽기 오류: {str(e)}")
                 await asyncio.sleep(1)
 
-    async def process_queue_socket(self):
-        """큐의 명령을 소켓을 통해 전송"""
-        if self.QUEUE:
-            send_data = self.QUEUE.pop(0)
-            self.logger.signal(f'신호 전송: {send_data}')
-            
-            # MQTT 대신 소켓으로 직접 전송
-            try:
-                self.socket.send(bytes.fromhex(send_data['sendcmd']))
-                if send_data['count'] < 5:
-                    send_data['count'] += 1
-                    self.QUEUE.append(send_data)
-                else:
-                    self.logger.signal(f'5회 이상 전송 실패. 큐에서 제거: {send_data}')
-            except Exception as e:
-                self.logger.error(f"Socket 전송 오류: {str(e)}")
-                self.QUEUE.append(send_data)
 
     def run(self):
         self.logger.info("'Commax Wallpad Addon'을 시작합니다.")

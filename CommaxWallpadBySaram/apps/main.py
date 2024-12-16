@@ -399,8 +399,8 @@ class WallpadController:
             self.logger.info("MQTT broker 접속 완료")
             topics = [
                 (f'{self.HA_TOPIC}/+/+/command', 0),
-                (f'{self.ELFIN_TOPIC}/recv', 0),
-                (f'{self.ELFIN_TOPIC}/send', 0)
+                # (f'{self.ELFIN_TOPIC}/recv', 0),
+                # (f'{self.ELFIN_TOPIC}/send', 0)
             ]
             client.subscribe(topics)
             self.logger.info(f"구독 시작: {topics}")
@@ -475,8 +475,9 @@ class WallpadController:
                         await self.reboot_elfin_device()
                     self.COLLECTDATA['LastRecv'] = time.time_ns()
                 if current_time - last_recv > 100_000_000:  # 100ms를 나노초로 변환
-                    await self.process_queue()
-                
+                    # await self.process_queue()
+                    await self.process_queue_socket()
+
             except Exception as err:
                 self.logger.error(f'process_queue_and_monitor() 오류: {str(err)}')
                 return True
@@ -776,7 +777,7 @@ class WallpadController:
                 self.logger.error(f"Socket 데이터 읽기 오류: {str(e)}")
                 await asyncio.sleep(1)
 
-    async def process_queue(self):
+    async def process_queue_socket(self):
         """큐의 명령을 소켓을 통해 전송"""
         if self.QUEUE:
             send_data = self.QUEUE.pop(0)

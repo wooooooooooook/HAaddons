@@ -12,7 +12,8 @@ from typing import Union, List
 import socket
 
 class WallpadSocket:
-    def __init__(self, host, port, logger):
+    def __init__(self, host, port, logger, loop):
+        self.loop = loop
         self._soc = socket.socket()
         self._soc.connect((host, port))
         self._recv_buf = bytearray()
@@ -474,7 +475,6 @@ class WallpadController:
                 self.logger.error(f'process_queue_and_monitor() 오류: {str(err)}', exc_info=True)
                 await asyncio.sleep(1)
             
-            self.logger.debug(f'현재 큐 길이: {len(self.QUEUE)}')
             await asyncio.sleep(0.1)  # 100ms로 수정
 
     async def process_queue(self):
@@ -760,7 +760,8 @@ class WallpadController:
             self.socket = WallpadSocket(
                 self.config['elfin_server'],
                 self.config.get('elfin_port', 8899),  # 기본 포트 8899
-                self.logger
+                self.logger,
+                self.loop
             )
             self.socket.set_timeout(10)
             self.logger.info("Socket 연결 완료")

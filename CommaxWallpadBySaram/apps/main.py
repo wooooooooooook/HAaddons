@@ -450,10 +450,6 @@ class WallpadController:
             self.logger.error(f'MQTT 메시지 처리 중 오류 발생: {str(err)}')
 
     async def process_queue_and_monitor(self, elfin_reboot_interval):
-        """
-        메시지 큐를 주기적으로 처리하고 기기 상태를 모니터링하는 함수입니다.
-        큐 처리는 최대 0.5초 타임아웃을 가지며, 모니터링은 1ms 간격으로 수행됩니다.
-        """
         self.logger.debug('큐 처리 및 모니터링 시작')
         while True:
             try:
@@ -461,27 +457,26 @@ class WallpadController:
                     current_time = time.time_ns()
                     last_recv = self.COLLECTDATA['LastRecv']
                     
-                    # EW11 기기 재시작 조건 체크
-                    if current_time - last_recv > elfin_reboot_interval * 1000000000:  # 초를 나노초로 변환
+                    if current_time - last_recv > elfin_reboot_interval * 1000000000:
                         self.logger.warning(f'{elfin_reboot_interval}초간 신호를 받지 못했습니다.')
                         self.logger.warning('EW11 재시작을 시도합니다.')
                         await self.reboot_elfin_device()
                     self.COLLECTDATA['LastRecv'] = time.time_ns()
 
-                # 큐 처리 (타임아웃 0.5초)
-                self.logger.debug(f'현재 큐 길이: {len(self.QUEUE)}')
                 try:
                     await asyncio.wait_for(self.process_queue_socket(), timeout=0.5)
                 except asyncio.TimeoutError:
                     self.logger.warning('큐 처리 타임아웃')
                 except Exception as e:
                     self.logger.error(f'큐 처리 중 오류 발생: {str(e)}')
-
             except Exception as err:
                 self.logger.error(f'process_queue_and_monitor() 오류: {str(err)}')
-                return True
+                # 심각한 오류가 아니라면 계속 실행
+                await asyncio.sleep(1)  # 오류 발생 시 잠시 대기
             
+            self.logger.debug(f'현재 큐 길이: {len(self.QUEUE)}')
             await asyncio.sleep(0.001)  # 1ms 대기
+
 
     async def process_queue(self):
         """

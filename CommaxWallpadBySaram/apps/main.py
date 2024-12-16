@@ -453,6 +453,7 @@ class WallpadController:
         self.logger.debug('큐 처리 및 모니터링 시작')
         while True:
             try:
+                # EW11 모니터링 부분
                 if self.config.get("elfin_auto_reboot", True):
                     current_time = time.time_ns()
                     last_recv = self.COLLECTDATA['LastRecv']
@@ -463,22 +464,22 @@ class WallpadController:
                         await self.reboot_elfin_device()
                     self.COLLECTDATA['LastRecv'] = time.time_ns()
 
-                try:
+                # 큐 처리 부분
+                if len(self.QUEUE) > 0:
                     self.logger.debug('큐 처리 시작')
-                    await asyncio.wait_for(self.process_queue_socket(), timeout=0.5)
-                    self.logger.debug('큐 처리 끝')
-                except asyncio.TimeoutError:
-                    self.logger.warning('큐 처리 타임아웃')
-                except Exception as e:
-                    self.logger.error(f'큐 처리 중 오류 발생: {str(e)}')
+                    try:
+                        # wait_for 대신 직접 호출
+                        await self.process_queue_socket()
+                        self.logger.debug('큐 처리 완료')
+                    except Exception as e:
+                        self.logger.error(f'큐 처리 중 오류 발생: {str(e)}', exc_info=True)
+                
             except Exception as err:
-                self.logger.error(f'process_queue_and_monitor() 오류: {str(err)}')
-                # 심각한 오류가 아니라면 계속 실행
-                await asyncio.sleep(1)  # 오류 발생 시 잠시 대기
+                self.logger.error(f'process_queue_and_monitor() 오류: {str(err)}', exc_info=True)
+                await asyncio.sleep(1)
             
             self.logger.debug(f'현재 큐 길이: {len(self.QUEUE)}')
-            await asyncio.sleep(0.001)  # 1ms 대기
-
+            await asyncio.sleep(0.1)  # 100ms로 수정
 
     async def process_queue(self):
         """

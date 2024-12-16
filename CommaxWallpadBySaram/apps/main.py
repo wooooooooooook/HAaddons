@@ -500,8 +500,10 @@ class WallpadController:
 
     async def process_queue_socket(self):
         """큐의 명령을 소켓을 통해 전송"""
+        self.logger.debug(f'큐 처리 함수 시작 큐 갯수:{len(self.QUEUE)}')
         if self.QUEUE:
             send_data = self.QUEUE.pop(0)
+            self.logger.debug(f'{send_data}')
             try:
                 # 소켓 전송을 비동기로 처리
                 await asyncio.get_event_loop().run_in_executor(

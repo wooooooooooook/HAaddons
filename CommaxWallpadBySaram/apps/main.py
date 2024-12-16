@@ -9,6 +9,49 @@ import re
 import os
 from logger import Logger
 from typing import Union, List
+import socket
+
+class WallpadSocket:
+    def __init__(self, host, port, logger):
+        self._soc = socket.socket()
+        self._soc.connect((host, port))
+        self._recv_buf = bytearray()
+        self._pending_recv = 0
+        self.logger = logger
+
+    def recv(self, count=1):
+        # socket은 버퍼와 in_waiting 직접 관리
+        while len(self._recv_buf) < count:
+            new_data = self._recv_raw(256)
+            if not new_data:
+                raise RuntimeError("socket connection lost!")
+            self._recv_buf.extend(new_data)
+        
+        self._pending_recv = max(self._pending_recv - count, 0)
+        res = self._recv_buf[0:count]
+        del self._recv_buf[0:count]
+        return res
+
+    def _recv_raw(self, count=1):
+        try:
+            return self._soc.recv(count)
+        except socket.timeout:
+            return None
+        except Exception as e:
+            self.logger.warning(f"unhandled exception {e}")
+
+    def send(self, data):
+        self._soc.sendall(data)
+
+    def set_timeout(self, timeout):
+        self._soc.settimeout(timeout)
+
+    def check_in_waiting(self):
+        if len(self._recv_buf) == 0:
+            new_data = self._recv_raw(256)
+            if new_data:
+                self._recv_buf.extend(new_data)
+        return len(self._recv_buf)
 
 class WallpadController:
     def __init__(self, config, logger):
@@ -26,6 +69,7 @@ class WallpadController:
         self.OPTION = config.get('OPTION', {})
         self.device_info = None
         self.loop = None
+        self.socket = None
 
     @staticmethod
     def checksum(input_hex):
@@ -693,6 +737,63 @@ class WallpadController:
                 device_lists[device] = result
         return device_lists
     
+    def setup_socket(self):
+        """소켓 연결을 초기화합니다."""
+        try:
+            self.socket = WallpadSocket(
+                self.config['elfin_server'],
+                self.config.get('elfin_port', 8899),  # 기본 포트 8899
+                self.logger
+            )
+            self.socket.set_timeout(10)
+            self.logger.info("Socket 연결 완료")
+        except Exception as e:
+            self.logger.error(f"Socket 연결 실패: {str(e)}")
+            raise
+
+    async def read_socket_data(self):
+        """소켓으로부터 데이터를 읽어 처리하는 코루틴"""
+        while True:
+            try:
+                # 첫 바이트 읽기
+                header = self.socket.recv(1)
+                if not header:
+                    continue
+                
+                # 패킷 길이는 8바이트로 가정 (프로토콜에 맞게 수정 필요)
+                packet_length = 8
+                remaining_data = self.socket.recv(packet_length - 1)
+                if not remaining_data:
+                    continue
+                
+                raw_data = (header + remaining_data).hex().upper()
+                self.logger.signal(f'Socket 수신: {raw_data}')
+                
+                # 데이터 처리
+                await self.process_elfin_data(raw_data)
+                
+            except Exception as e:
+                self.logger.error(f"Socket 데이터 읽기 오류: {str(e)}")
+                await asyncio.sleep(1)
+
+    async def process_queue(self):
+        """큐의 명령을 소켓을 통해 전송"""
+        if self.QUEUE:
+            send_data = self.QUEUE.pop(0)
+            self.logger.signal(f'신호 전송: {send_data}')
+            
+            # MQTT 대신 소켓으로 직접 전송
+            try:
+                self.socket.send(bytes.fromhex(send_data['sendcmd']))
+                if send_data['count'] < 5:
+                    send_data['count'] += 1
+                    self.QUEUE.append(send_data)
+                else:
+                    self.logger.signal(f'5회 이상 전송 실패. 큐에서 제거: {send_data}')
+            except Exception as e:
+                self.logger.error(f"Socket 전송 오류: {str(e)}")
+                self.QUEUE.append(send_data)
+
     def run(self):
         self.logger.info("'Commax Wallpad Addon'을 시작합니다.")
         self.logger.info("기존에 설정된 기기 파일이 있는지 확인합니다. (/share/cwbs_found_device.json)")
@@ -707,13 +808,16 @@ class WallpadController:
             self.device_list = self.find_device()
 
         self.setup_mqtt()
+        self.setup_socket()
         
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         
         tasks = [
             self.process_queue_and_monitor(self.config.get('elfin_reboot_interval', 10)),
+            self.read_socket_data()
         ]
+        
         try:
             self.loop.run_until_complete(asyncio.gather(*tasks))
         except Exception as e:
@@ -721,6 +825,8 @@ class WallpadController:
         finally:
             self.loop.close()
             self.mqtt_client.loop_stop()
+            if self.socket:
+                self.socket._soc.close()
 
     def __del__(self):
         """클래스 인스턴스가 삭제될 때 리소스 정리"""

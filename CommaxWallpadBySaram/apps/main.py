@@ -463,12 +463,12 @@ class WallpadController:
         Raises:
             Exception: 큐 처리 또는 기기 재시작 중 오류 발생시 예외를 발생시킵니다.
         """
+        self.logger.debug('process queue 시작')
         while True:
-            self.logger.debug(f'{current_time - last_recv}')
             try:
                 current_time = time.time_ns()
                 last_recv = self.COLLECTDATA['LastRecv']
-                
+                self.logger.debug(f'{current_time - last_recv}')
                 if current_time - last_recv > elfin_reboot_interval * 1000000000:  # 초를 나노초로 변환
                     self.logger.warning(f'{elfin_reboot_interval}초간 신호를 받지 못했습니다.')
                     if (self.config.get("elfin_auto_reboot",True)):

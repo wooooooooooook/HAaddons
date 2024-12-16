@@ -490,7 +490,6 @@ class WallpadController:
         전송 횟수가 5회 미만인 경우, 데이터는 큐에 다시 추가됩니다. 
         전송 횟수가 5회 이상인 경우, 데이터는 큐에서 제거됩니다.
         """
-        self.logger.debug(f'현재 큐 길이: {len(self.QUEUE)}')
         if self.QUEUE:
             send_data = self.QUEUE.pop(0)
             self.logger.signal(f'신호 전송: {send_data}')
@@ -503,6 +502,7 @@ class WallpadController:
 
     async def process_queue_socket(self):
         """큐의 명령을 소켓을 통해 전송"""
+        self.logger.debug(f'현재 큐 길이: {len(self.QUEUE)}')
         if self.QUEUE:
             send_data = self.QUEUE.pop(0)
             try:

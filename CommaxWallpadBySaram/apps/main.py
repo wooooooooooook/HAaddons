@@ -19,10 +19,10 @@ class WallpadSocket:
         self._pending_recv = 0
         self.logger = logger
 
-    def recv(self, count=1):
+    async def recv(self, count=1):
         # socket은 버퍼와 in_waiting 직접 관리
         while len(self._recv_buf) < count:
-            new_data = self._recv_raw(256)
+            new_data = await self._recv_raw(256)
             if not new_data:
                 raise RuntimeError("socket connection lost!")
             self._recv_buf.extend(new_data)
@@ -46,9 +46,9 @@ class WallpadSocket:
     def set_timeout(self, timeout):
         self._soc.settimeout(timeout)
 
-    def check_in_waiting(self):
+    async def check_in_waiting(self):
         if len(self._recv_buf) == 0:
-            new_data = self._recv_raw(256)
+            new_data = await self._recv_raw(256)
             if new_data:
                 self._recv_buf.extend(new_data)
         return len(self._recv_buf)
@@ -773,13 +773,13 @@ class WallpadController:
         while True:
             try:
                 # 첫 바이트 읽기
-                header = self.socket.recv(1)
+                header = await self.socket.recv(1)
                 if not header:
                     continue
                 
                 # 패킷 길이는 8바이트로 가정 (프로토콜에 맞게 수정 필요)
                 packet_length = 8
-                remaining_data = self.socket.recv(packet_length - 1)
+                remaining_data = await self.socket._recv_raw(packet_length - 1)
                 if not remaining_data:
                     continue
                 

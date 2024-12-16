@@ -506,11 +506,11 @@ class WallpadController:
         """큐의 명령을 소켓을 통해 전송"""
         if self.QUEUE:
             send_data = self.QUEUE.pop(0)
-            self.logger.signal(f'신호 전송: {send_data}')
             
             # MQTT 대신 소켓으로 직접 전송
             try:
                 self.socket.send(bytes.fromhex(send_data['sendcmd']))
+                self.logger.signal(f'Socket 송신: {send_data}')
                 if send_data['count'] < 5:
                     send_data['count'] += 1
                     self.QUEUE.append(send_data)
@@ -786,6 +786,7 @@ class WallpadController:
                 
                 raw_data = (header + remaining_data).hex().upper()
                 self.logger.signal(f'Socket 수신: {raw_data}')
+                self.COLLECTDATA['LastRecv'] = time.time_ns()
                 
                 # 데이터 처리
                 await self.process_elfin_data(raw_data)

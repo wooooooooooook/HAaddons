@@ -469,6 +469,7 @@ class WallpadController:
                     self.COLLECTDATA['LastRecv'] = time.time_ns()
 
                 # 큐 처리 (타임아웃 0.5초)
+                self.logger.debug(f'현재 큐 길이: {len(self.QUEUE)}')
                 try:
                     await asyncio.wait_for(self.process_queue_socket(), timeout=0.5)
                 except asyncio.TimeoutError:
@@ -502,7 +503,6 @@ class WallpadController:
 
     async def process_queue_socket(self):
         """큐의 명령을 소켓을 통해 전송"""
-        self.logger.debug(f'현재 큐 길이: {len(self.QUEUE)}')
         if self.QUEUE:
             send_data = self.QUEUE.pop(0)
             try:

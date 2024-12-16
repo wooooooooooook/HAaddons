@@ -464,7 +464,9 @@ class WallpadController:
                     self.COLLECTDATA['LastRecv'] = time.time_ns()
 
                 try:
+                    self.logger.debug('큐 처리 시작')
                     await asyncio.wait_for(self.process_queue_socket(), timeout=0.5)
+                    self.logger.debug('큐 처리 끝')
                 except asyncio.TimeoutError:
                     self.logger.warning('큐 처리 타임아웃')
                 except Exception as e:

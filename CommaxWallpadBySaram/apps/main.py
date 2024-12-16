@@ -32,9 +32,9 @@ class WallpadSocket:
         del self._recv_buf[0:count]
         return res
 
-    def _recv_raw(self, count=1):
+    async def _recv_raw(self, count=1):
         try:
-            return self._soc.recv(count)
+            return await self.loop.sock_recv(self._soc, count)
         except socket.timeout:
             return None
         except Exception as e:
@@ -417,7 +417,7 @@ class WallpadController:
             }
             self.logger.error(f"MQTT 연결 실패: {errcode.get(rc, '알 수 없는 오류')}")
 
-    def on_mqtt_message(self, client, userdata, msg):
+    async def on_mqtt_message(self, client, userdata, msg):
         try:
             topics = msg.topic.split('/')
             
@@ -428,10 +428,7 @@ class WallpadController:
                     self.COLLECTDATA['LastRecv'] = time.time_ns()
                     
                     if self.loop and self.loop.is_running():
-                        asyncio.run_coroutine_threadsafe(
-                            self.process_elfin_data(raw_data),
-                            self.loop
-                        )
+                        await self.process_elfin_data(raw_data)
                 elif topics[1] == 'send':
                     raw_data = msg.payload.hex().upper()
                     self.logger.debug(f'RS485송신 확인: {raw_data}')
@@ -450,7 +447,6 @@ class WallpadController:
             self.logger.error(f'MQTT 메시지 처리 중 오류 발생: {str(err)}')
 
     async def process_queue_and_monitor(self, elfin_reboot_interval):
-        self.logger.debug('큐 처리 및 모니터링 시작')
         while True:
             try:
                 # EW11 모니터링 부분
@@ -797,7 +793,6 @@ class WallpadController:
             except Exception as e:
                 self.logger.error(f"Socket 데이터 읽기 오류: {str(e)}")
                 await asyncio.sleep(1)
-
 
     def run(self):
         self.logger.info("'Commax Wallpad Addon'을 시작합니다.")

@@ -15,7 +15,11 @@ class WallpadSocket:
     def __init__(self, host, port, logger, loop):
         self.loop = loop
         self._soc = socket.socket()
-        self._soc.connect((host, port))
+        try:
+            self._soc.connect((host, port))
+        except Exception as e:
+            self.logger.error(f"소켓 연결 실패: {str(e)}")
+            self._soc = None  # 연결 실패 시 None으로 설정
         self._recv_buf = bytearray()
         self._pending_recv = 0
         self.logger = logger
@@ -34,12 +38,16 @@ class WallpadSocket:
         return res
 
     async def _recv_raw(self, count=1):
+        if self._soc is None:  # 소켓이 None인 경우 예외 처리
+            self.logger.error("소켓이 연결되어 있지 않습니다.")
+            return None
         try:
             return await self.loop.sock_recv(self._soc, count)
         except socket.timeout:
             return None
         except Exception as e:
             self.logger.warning(f"unhandled exception {e}")
+            return None
 
     def send(self, data):
         self._soc.sendall(data)
@@ -81,7 +89,7 @@ class WallpadController:
             input_hex (str): 기본 16진수 명령어 문자열
         
         Returns:
-            str: 체크섬이 포함된 수정된 16진수 명령어. 실패시 None 반환
+            str: 체크섬이 ��함된 수정된 16진수 명령어. 실패시 None 반환
         """
         try:
             input_hex = input_hex[:14]
@@ -317,7 +325,7 @@ class WallpadController:
             setTemp (int): 설정하고자 하는 목표 온도 값.
 
         Raises:
-            Exception: 온도 업데이트 중 오류가 발생하면 예외를 발생시킵니다.
+            Exception: 온도 업데이트 중 오류가 발생하면 예외를 발생시킵니��.
         """
         try:
             deviceID = 'Thermo' + str(idx)
@@ -482,7 +490,7 @@ class WallpadController:
         큐에 있는 모든 데이터를 처리합니다.
         
         이 함수는 큐에 있는 모든 데이터를 처리합니다. 각 데이터는 전송 횟수를 포함합니다. 
-        전송 횟수가 5회 미만인 경우, 데이터는 큐에 다시 추가됩니다. 
+        전송 횟수가 5회 미만인 ���우, 데이터는 큐에 다시 추가됩니다. 
         전송 횟수가 5회 이상인 경우, 데이터는 큐에서 제거됩니다.
         """
         if self.QUEUE:

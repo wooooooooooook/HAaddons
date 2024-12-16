@@ -464,6 +464,7 @@ class WallpadController:
             Exception: 큐 처리 또는 기기 재시작 중 오류 발생시 예외를 발생시킵니다.
         """
         while True:
+            self.logger.debug(f'{current_time - last_recv}')
             try:
                 current_time = time.time_ns()
                 last_recv = self.COLLECTDATA['LastRecv']
@@ -476,7 +477,6 @@ class WallpadController:
                     self.COLLECTDATA['LastRecv'] = time.time_ns()
                 if current_time - last_recv > 100000000:  # 100ms를 나노초로 변환
                     # await self.process_queue()
-                    self.logger.debug('100ms 큐 실행')
                     await self.process_queue_socket()
 
             except Exception as err:

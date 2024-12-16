@@ -476,6 +476,7 @@ class WallpadController:
                     self.COLLECTDATA['LastRecv'] = time.time_ns()
                 if current_time - last_recv > 100000000:  # 100ms를 나노초로 변환
                     # await self.process_queue()
+                    self.logger.debug('100ms 큐 실행')
                     await self.process_queue_socket()
 
             except Exception as err:
@@ -509,7 +510,8 @@ class WallpadController:
             
             # MQTT 대신 소켓으로 직접 전송
             try:
-                self.socket.send(bytes.fromhex(send_data['sendcmd']))
+                # self.socket.send(bytes.fromhex(send_data['sendcmd']))
+                self.socket.send(send_data['sendcmd'])
                 self.logger.signal(f'Socket 송신: {send_data}')
                 if send_data['count'] < 5:
                     send_data['count'] += 1

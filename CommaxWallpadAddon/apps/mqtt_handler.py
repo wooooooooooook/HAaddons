@@ -114,14 +114,24 @@ class MQTTHandler:
         if self.mqtt_client and self.mqtt_client.is_connected():
             self.logger.info("기존 MQTT 연결을 종료합니다.")
             self.mqtt_client.disconnect()
+        
         try:
-            self.logger.info("MQTT 브로커 연결 시도 중...")
-            if self.mqtt_client:
-                self.mqtt_client.connect(self.config['mqtt_server'])
-            else:
-                self.logger.error("MQTT 클라이언트가 초기화되지 않았습니다.")
+            mqtt_server = self.config.get('mqtt_server', '')
+            if not mqtt_server:
+                raise ValueError("MQTT 서버 주소가 설정되지 않았습니다.")
+            
+            # MQTT 클라이언트 초기화
+            if not self.mqtt_client:
+                self.mqtt_client = self.setup_mqtt()
+                if not self.mqtt_client:
+                    raise ValueError("MQTT 클라이언트 초기화 실패")
+            
+            self.logger.info(f"MQTT 브로커({mqtt_server})에 연결 시도 중...")
+            self.mqtt_client.connect(mqtt_server)
+            
         except Exception as e:
             self.logger.error(f"MQTT 연결 실패: {str(e)}")
+            raise
 
     def reconnect_mqtt(self) -> None:
         """
@@ -135,12 +145,20 @@ class MQTTHandler:
 
         for attempt in range(max_retries):
             try:
-                self.logger.info(f"MQTT 브로커 재연결 시도 중... (시도 {attempt + 1}/{max_retries})")
-                if self.mqtt_client:
-                    self.mqtt_client.connect(self.config['mqtt_server'])
-                    return
-                else:
-                    raise Exception("MQTT 클라이언트가 초기화되지 않았습니다.")
+                mqtt_server = self.config.get('mqtt_server', '')
+                if not mqtt_server:
+                    raise ValueError("MQTT 서버 주소가 설정되지 않았습니다.")
+                
+                self.logger.info(f"MQTT 브로커({mqtt_server}) 재연결 시도 중... (시도 {attempt + 1}/{max_retries})")
+                
+                if not self.mqtt_client:
+                    self.mqtt_client = self.setup_mqtt()
+                    if not self.mqtt_client:
+                        raise ValueError("MQTT 클라이언트 초기화 실패")
+                
+                self.mqtt_client.connect(mqtt_server)
+                return
+                
             except Exception as e:
                 if attempt < max_retries - 1:
                     self.logger.warning(f"MQTT 재연결 실패: {str(e)}. {retry_interval}초 후 재시도...")
@@ -167,7 +185,7 @@ class MQTTHandler:
             
         Note:
             토픽이 '/send'로 끝나는 경우 value를 그대로 발행하고,
-            그 외의 경우 value를 UTF-8로 인코딩하여 발행합니다.
+            그 외의 경우 value를 UTF-8로 인코딩하여 발��합니다.
         """
         if self.mqtt_client:
             if topic.endswith('/send'):
@@ -227,7 +245,7 @@ class MQTTHandler:
             
         Note:
             데이터를 16바이트 단위로 나누어 처리하며,
-            각 패킷의 체크섬을 검증하고 해당하는 기기의 상태를 업데이트합니다.
+            각 패킷의 체크섬을 검증하고 해당하는 기기의 상��를 업데이트합니다.
         """
         try:
             for k in range(0, len(raw_data), 16):

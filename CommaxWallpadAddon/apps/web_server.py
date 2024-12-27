@@ -2,16 +2,27 @@ from flask import Flask, render_template, jsonify, request # type: ignore
 import threading
 import logging
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional, cast
 import time
 import json
 import yaml # type: ignore
 import shutil
 from datetime import datetime
 import requests
+import paho.mqtt.client as mqtt # type: ignore
+from main import WallpadController
+from packet_handler import PacketHandler
+from mqtt_handler import MQTTHandler
+from utils import checksum
 
 class WebServer:
-    def __init__(self, wallpad_controller):
+    def __init__(self, wallpad_controller: WallpadController):
+        """
+        WebServer 클래스를 초기화합니다.
+        
+        Args:
+            wallpad_controller (WallpadController): 월패드 컨트롤러 인스턴스
+        """
         self.app = Flask(__name__, template_folder='templates')
         self.wallpad_controller = wallpad_controller
         self.recent_messages = []  # 최근 메시지를 저장할 리스트
@@ -19,7 +30,38 @@ class WebServer:
         # 로깅 비활성화
         log = logging.getLogger('werkzeug')
         log.setLevel(logging.ERROR)
-        
+
+        # MQTT 클라이언트 타입 캐스팅
+        def get_mqtt_client() -> Optional[mqtt.Client]:
+            return cast(Optional[mqtt.Client], self.wallpad_controller.mqtt_handler.mqtt_client)
+
+        # 패킷 핸들러 타입 캐스팅
+        def get_packet_handler() -> PacketHandler:
+            return cast(PacketHandler, self.wallpad_controller.mqtt_handler.packet_handler)
+
+        @self.app.route('/api/mqtt_status')
+        def get_mqtt_status():
+            """MQTT 연결 상태 정보를 제공합니다."""
+            client = get_mqtt_client()
+            if not client:
+                return jsonify({
+                    'connected': False,
+                    'broker': None,
+                    'client_id': None,
+                    'subscribed_topics': []
+                })
+
+            return jsonify({
+                'connected': client.is_connected(),
+                'broker': f"{self.wallpad_controller.config['mqtt_server']}",
+                'client_id': getattr(client, '_client_id', b'').decode() if hasattr(client, '_client_id') else None,
+                'subscribed_topics': [
+                    f'{self.wallpad_controller.mqtt_handler.HA_TOPIC}/+/+/command',
+                    f'{self.wallpad_controller.mqtt_handler.ELFIN_TOPIC}/recv',
+                    f'{self.wallpad_controller.mqtt_handler.ELFIN_TOPIC}/send'
+                ]
+            })
+
         # Home Assistant Ingress 베이스 URL 설정
         self.base_url = os.environ.get('SUPERVISOR_TOKEN', '')
         
@@ -109,30 +151,7 @@ class WebServer:
             
         @self.app.route('/api/state')
         def get_state():
-            return jsonify(self.wallpad_controller.HOMESTATE)
-
-        @self.app.route('/api/mqtt_status')
-        def get_mqtt_status():
-            """MQTT 연결 상태 정보를 제공합니다."""
-            if not self.wallpad_controller.mqtt_client:
-                return jsonify({
-                    'connected': False,
-                    'broker': None,
-                    'client_id': None,
-                    'subscribed_topics': []
-                })
-
-            client = self.wallpad_controller.mqtt_client
-            return jsonify({
-                'connected': client.is_connected(),
-                'broker': f"{self.wallpad_controller.config['mqtt_server']}",
-                'client_id': client._client_id.decode() if client._client_id else None,
-                'subscribed_topics': [
-                    f'{self.wallpad_controller.HA_TOPIC}/+/+/command',
-                    f'{self.wallpad_controller.ELFIN_TOPIC}/recv',
-                    f'{self.wallpad_controller.ELFIN_TOPIC}/send'
-                ]
-            })
+            return jsonify(self.wallpad_controller.mqtt_handler.device_controller.HOMESTATE)
 
         @self.app.route('/api/config', methods=['GET'])
         def get_config():
@@ -190,7 +209,7 @@ class WebServer:
                                     validation_errors.append(f"{key}: 실수여야 합니다.")
                             elif schema_type == 'bool':
                                 if not isinstance(value, bool):
-                                    validation_errors.append(f"{key}: 참/거짓 값이어야 합니다.")
+                                    validation_errors.append(f"{key}: true 또는 false 값이어야 합니다.")
                             elif schema_type == 'list':
                                 # list(commax|custom) 형식에서 가능한 값들 추출
                                 allowed_values = field_schema.split('(')[1].rstrip('?)').split('|')
@@ -266,17 +285,15 @@ class WebServer:
             try:
                 send_packets = []
                 recv_packets = []
-
-                # 가능한 패킷 타입
-                packet_types = ['command', 'state_request', 'state', 'ack']
+                collect_data = self.wallpad_controller.mqtt_handler.COLLECTDATA
 
                 # 송신 패킷 처리
-                for packet in self.wallpad_controller.COLLECTDATA['send_data']:
+                for packet in collect_data['send_data']:
                     packet_info = {
                         'packet': packet,
                         'results': []
                     }
-                    for packet_type in packet_types:
+                    for packet_type in ['command', 'state_request', 'state', 'ack']:
                         device_info = self._analyze_packet_structure(packet, packet_type)
                         if device_info['success']:
                             packet_info['results'].append({
@@ -293,13 +310,13 @@ class WebServer:
 
                     send_packets.append(packet_info)
 
-                # 수신 패킷 처리 (송신 패킷 처리와 동일한 로직 적용)
-                for packet in self.wallpad_controller.COLLECTDATA['recv_data']:
+                # 수신 패킷 처리
+                for packet in collect_data['recv_data']:
                     packet_info = {
                         'packet': packet,
                         'results': []
                     }
-                    for packet_type in packet_types:
+                    for packet_type in ['command', 'state_request', 'state', 'ack']:
                         device_info = self._analyze_packet_structure(packet, packet_type)
                         if device_info['success']:
                             packet_info['results'].append({
@@ -336,10 +353,10 @@ class WebServer:
             try:
                 data = request.get_json()
                 command = data.get('command', '').strip()
-                packet_type = data.get('type', 'command')  # 'command' 또는 'state'
+                packet_type = data.get('type', 'command')
 
                 # 체크섬 계산
-                checksum_result = self.wallpad_controller.checksum(command)
+                checksum_result = checksum(command)
 
                 # 패킷 구조 분석
                 analysis_result = self._analyze_packet_structure(command, packet_type)
@@ -356,7 +373,7 @@ class WebServer:
 
                 # command 패킷 경우 예상 상태 패킷 추가
                 if packet_type == 'command' and checksum_result:
-                    expected_state = self.wallpad_controller.generate_expected_state_packet(checksum_result)
+                    expected_state = self.wallpad_controller.mqtt_handler.packet_handler.generate_expected_state_packet(checksum_result)
                     if expected_state:
                         response["expected_state"] = expected_state
 
@@ -368,83 +385,13 @@ class WebServer:
                     "error": str(e)
                 }), 400
 
-        @self.app.route('/api/packet_structures')
+        @self.app.route('/api/packet_structures', methods=['GET'])
         def get_packet_structures():
-            structures = {}
-            for device_name, device in self.wallpad_controller.DEVICE_STRUCTURE.items():
-                structures[device_name] = {
-                    "type": device['type'],
-                    "command": self._get_packet_structure(device_name, device, 'command'),
-                    "state": self._get_packet_structure(device_name, device, 'state'),
-                    "state_request": self._get_packet_structure(device_name, device, 'state_request'),
-                    "ack": self._get_packet_structure(device_name, device, 'ack')
-                }
-             
-            return jsonify(structures)
+            return self.get_packet_structures()
 
-        @self.app.route('/api/packet_suggestions')
+        @self.app.route('/api/packet_suggestions', methods=['GET'])
         def get_packet_suggestions():
-            """패킷 입력 도우미를 위한 정보를 제공합니다."""
-            suggestions = {
-                'headers': {},  # 헤더 정보
-                'values': {}    # 각 바이트 위치별 가능한 값
-            }
-            
-            # 명령 패킷 헤더
-            command_headers = []
-            for device_name, device in self.wallpad_controller.DEVICE_STRUCTURE.items():
-                if 'command' in device:
-                    command_headers.append({
-                        'header': device['command']['header'],
-                        'device': device_name
-                    })
-            suggestions['headers']['command'] = command_headers
-            
-            # 상태 패킷 헤더
-            state_headers = []
-            for device_name, device in self.wallpad_controller.DEVICE_STRUCTURE.items():
-                if 'state' in device:
-                    state_headers.append({
-                        'header': device['state']['header'],
-                        'device': device_name
-                    })
-            suggestions['headers']['state'] = state_headers
-            
-            # 상태 요청 패킷 헤더
-            state_request_headers = []
-            for device_name, device in self.wallpad_controller.DEVICE_STRUCTURE.items():
-                if 'state_request' in device:
-                    state_request_headers.append({
-                        'header': device['state_request']['header'],
-                        'device': device_name
-                    })
-            suggestions['headers']['state_request'] = state_request_headers
-            
-            # 응답 패킷 헤더
-            ack_headers = []
-            for device_name, device in self.wallpad_controller.DEVICE_STRUCTURE.items():
-                if 'ack' in device:
-                    ack_headers.append({
-                        'header': device['ack']['header'],
-                        'device': device_name
-                    })
-            suggestions['headers']['ack'] = ack_headers
-            
-            # 각 기기별 가능한 값들
-            for device_name, device in self.wallpad_controller.DEVICE_STRUCTURE.items():
-                for packet_type in ['command', 'state', 'state_request', 'ack']:
-                    if packet_type in device:
-                        key = f"{device_name}_{packet_type}"
-                        suggestions['values'][key] = {}
-                        
-                        for pos, field in device[packet_type]['structure'].items():
-                            if 'values' in field:
-                                suggestions['values'][key][pos] = {
-                                    'name': field['name'],
-                                    'values': field['values']
-                                }
-            
-            return jsonify(suggestions)
+            return self.get_packet_suggestions()
 
         @self.app.route('/api/send_packet', methods=['POST'])
         def send_packet():
@@ -456,12 +403,15 @@ class WebServer:
                     return jsonify({"success": False, "error": "패킷이 비어있습니다."}), 400
                 
                 # 패킷 체크섬 검증
-                if packet != self.wallpad_controller.checksum(packet):
+                if packet != checksum(packet):
                     return jsonify({"success": False, "error": "잘못된 패킷입니다."}), 400
                 
                 # 패킷을 bytes로 변환하여 MQTT로 발행
                 packet_bytes = bytes.fromhex(packet)
-                self.wallpad_controller.publish_mqtt(f'{self.wallpad_controller.ELFIN_TOPIC}/send', packet_bytes)
+                self.wallpad_controller.mqtt_handler.publish_mqtt(
+                    f'{self.wallpad_controller.mqtt_handler.ELFIN_TOPIC}/send', 
+                    packet_bytes
+                )
                 
                 return jsonify({"success": True})
             
@@ -568,7 +518,11 @@ class WebServer:
         device_info = None
         device_name = None
 
-        for name, device in self.wallpad_controller.DEVICE_STRUCTURE.items():
+        device_structure = self._get_device_structure()
+        if not device_structure:
+            return {"success": False, "error": "기기 구조가 없습니다."}
+
+        for name, device in device_structure.items():
             if packet_type in device and device[packet_type]['header'] == header:
                 device_info = device[packet_type]
                 device_name = name
@@ -841,14 +795,17 @@ class WebServer:
             return {"name": "Unknown", "packet_type": "Unknown"}
             
         header = packet[:2]
+        device_structure = self._get_device_structure()
+        if not device_structure:
+            return {"name": "Unknown", "packet_type": "Unknown"}
         
         # 명령 패킷 확인
-        for device_name, device in self.wallpad_controller.DEVICE_STRUCTURE.items():
+        for device_name, device in device_structure.items():
             if 'command' in device and device['command']['header'] == header:
                 return {"name": device_name, "packet_type": "Command"}
                 
         # 상태 패킷 확인
-        for device_name, device in self.wallpad_controller.DEVICE_STRUCTURE.items():
+        for device_name, device in device_structure.items():
             if 'state' in device and device['state']['header'] == header:
                 return {"name": device_name, "packet_type": "State"}
                 
@@ -864,3 +821,117 @@ class WebServer:
         # 최근 100개 메시지만 유지
         if len(self.recent_messages) > 100:
             self.recent_messages = self.recent_messages[-100:] 
+
+    def _get_device_structure(self) -> Dict[str, Dict[str, Any]]:
+        """기기 구조 정보를 가져옵니다.
+
+        Returns:
+            Dict[str, Dict[str, Any]]: 기기 구조 정보. 구조가 없는 경우 빈 딕셔너리를 반환합니다.
+        """
+        device_structure = getattr(self.wallpad_controller, 'DEVICE_STRUCTURE', {})
+        if not isinstance(device_structure, dict):
+            return {}
+        return cast(Dict[str, Dict[str, Any]], device_structure)
+
+    def _setup_routes(self):
+        """웹 서버의 라우트를 설정합니다."""
+        
+        @self.app.route('/api/packet_structures', methods=['GET'])
+        def get_packet_structures():
+            return self.get_packet_structures()
+
+        @self.app.route('/api/packet_suggestions', methods=['GET'])
+        def get_packet_suggestions():
+            return self.get_packet_suggestions()
+
+    def get_packet_structures(self):
+        """패킷 구조 정보를 반환합니다."""
+        structures: Dict[str, Any] = {}
+        device_structure = self._get_device_structure()
+        
+        if not device_structure:
+            return jsonify(structures)
+            
+        try:
+            for device_name, device in device_structure.items():
+                structures[device_name] = {
+                    "type": device['type'],
+                    "command": self._get_packet_structure(device_name, device, 'command'),
+                    "state": self._get_packet_structure(device_name, device, 'state'),
+                    "state_request": self._get_packet_structure(device_name, device, 'state_request'),
+                    "ack": self._get_packet_structure(device_name, device, 'ack')
+                }
+        except (AttributeError, TypeError):
+            return jsonify(structures)
+         
+        return jsonify(structures)
+
+    def get_packet_suggestions(self):
+        """패킷 입력 도우미를 위한 정보를 제공합니다."""
+        suggestions = {
+            'headers': {},  # 헤더 정보
+            'values': {}    # 각 바이트 위치별 가능한 값
+        }
+        
+        device_structure = self._get_device_structure()
+        if not device_structure:
+            return jsonify(suggestions)
+        
+        try:
+            # 명령 패킷 헤더
+            command_headers = []
+            for device_name, device in device_structure.items():
+                if 'command' in device:
+                    command_headers.append({
+                        'header': device['command']['header'],
+                        'device': device_name
+                    })
+            suggestions['headers']['command'] = command_headers
+            
+            # 상태 패킷 헤더
+            state_headers = []
+            for device_name, device in device_structure.items():
+                if 'state' in device:
+                    state_headers.append({
+                        'header': device['state']['header'],
+                        'device': device_name
+                    })
+            suggestions['headers']['state'] = state_headers
+            
+            # 상태 요청 패킷 헤더
+            state_request_headers = []
+            for device_name, device in device_structure.items():
+                if 'state_request' in device:
+                    state_request_headers.append({
+                        'header': device['state_request']['header'],
+                        'device': device_name
+                    })
+            suggestions['headers']['state_request'] = state_request_headers
+            
+            # 응답 패킷 헤더
+            ack_headers = []
+            for device_name, device in device_structure.items():
+                if 'ack' in device:
+                    ack_headers.append({
+                        'header': device['ack']['header'],
+                        'device': device_name
+                    })
+            suggestions['headers']['ack'] = ack_headers
+            
+            # 각 기기별 가능한 값들
+            for device_name, device in device_structure.items():
+                for packet_type in ['command', 'state', 'state_request', 'ack']:
+                    if packet_type in device:
+                        key = f"{device_name}_{packet_type}"
+                        suggestions['values'][key] = {}
+                        
+                        for pos, field in device[packet_type]['structure'].items():
+                            if 'values' in field:
+                                suggestions['values'][key][pos] = {
+                                    'name': field['name'],
+                                    'values': field['values']
+                                }
+        except (AttributeError, TypeError):
+            return jsonify(suggestions)
+        
+        return jsonify(suggestions) 

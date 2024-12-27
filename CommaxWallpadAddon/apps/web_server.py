@@ -142,16 +142,8 @@ class WebServer:
                 with open('/data/options.json', 'r', encoding='utf-8') as f:
                     options = json.load(f)
                 
-                # 민감한 정보 필터링
-                filtered_config = {}
-                for key, value in self.wallpad_controller.config.items():
-                    if key in ['mqtt_id', 'mqtt_password', 'elfin_id', 'elfin_password']:
-                        filtered_config[key] = '********'  # 민감한 정보 마스킹
-                    else:
-                        filtered_config[key] = value
-
                 return jsonify({
-                    'config': filtered_config,
+                    'config': options.get('options', {}),
                     'schema': options.get('schema', {})  # 스키마 정보 포함
                 })
             except Exception as e:

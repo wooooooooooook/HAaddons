@@ -234,7 +234,8 @@ class WallpadController:
             self.mqtt_client.loop_start()
             
             # 메인 루프 실행
-            self.loop = asyncio.get_event_loop()
+            self.loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.loop)
 
             # MQTT 연결 완료를 기다림
             async def wait_for_mqtt():

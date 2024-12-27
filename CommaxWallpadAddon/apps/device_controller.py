@@ -10,7 +10,6 @@
 import json
 import logging
 from typing import Dict, Any, Optional
-from logger import LoggerInstance
 
 class DeviceController:
     """
@@ -23,7 +22,7 @@ class DeviceController:
         STATE_TOPIC (str): MQTT 상태 토픽 형식
     """
     
-    def __init__(self, mqtt_client: Any, logger: LoggerInstance, state_topic: str) -> None:
+    def __init__(self, mqtt_client: Any, logger, state_topic: str) -> None:
         """
         DeviceController 클래스를 초기화합니다.
         

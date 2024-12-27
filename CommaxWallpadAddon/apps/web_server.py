@@ -2,7 +2,7 @@ from flask import Flask, render_template, jsonify, request # type: ignore
 import threading
 import logging
 import os
-from typing import Dict, Any, Optional, cast
+from typing import Dict, Any, Optional, cast, TYPE_CHECKING
 import time
 import json
 import yaml # type: ignore
@@ -10,13 +10,15 @@ import shutil
 from datetime import datetime
 import requests
 import paho.mqtt.client as mqtt # type: ignore
-from main import WallpadController
 from packet_handler import PacketHandler
 from mqtt_handler import MQTTHandler
 from utils import checksum
 
+if TYPE_CHECKING:
+    from main import WallpadController
+
 class WebServer:
-    def __init__(self, wallpad_controller: WallpadController):
+    def __init__(self, wallpad_controller: 'WallpadController'):
         """
         WebServer 클래스를 초기화합니다.
         

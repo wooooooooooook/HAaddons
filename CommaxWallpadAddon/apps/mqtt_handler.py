@@ -14,11 +14,14 @@ import asyncio
 import re
 import time
 import telnetlib3 # type: ignore
-from typing import Dict, Any, Optional, List, Set, TypedDict, Callable
-from logger import LoggerInstance
+from typing import Dict, Any, Optional, List, Set, TypedDict, Callable, TYPE_CHECKING
 from packet_handler import PacketHandler
 from device_controller import DeviceController
 from utils import checksum, verify_checksum
+
+
+if TYPE_CHECKING:
+    from logger import LoggerInstance
 
 class QueueItem(TypedDict):
     """큐에 저장되는 메시지 아이템의 구조를 정의합니다."""
@@ -30,7 +33,7 @@ class CollectData(TypedDict):
     """수집된 데이터의 구조를 정의합니다."""
     send_data: Set[str]  # 송신된 패킷 목록
     recv_data: Set[str]  # 수신된 패킷 목록
-    last_recv_time: int  # 마지막 수신 시��
+    last_recv_time: int  # 마지막 수신 시간
 
 class MQTTHandler:
     """
@@ -75,8 +78,8 @@ class MQTTHandler:
         }
         
         self.mqtt_client: Optional[mqtt.Client] = None
-        self.packet_handler = PacketHandler(device_structure, logger)
-        self.device_controller = DeviceController(self, logger, self.STATE_TOPIC)
+        self.packet_handler = PacketHandler(device_structure, self.logger)
+        self.device_controller = DeviceController(self, self.logger, self.STATE_TOPIC)
         self.loop: Optional[asyncio.AbstractEventLoop] = None
 
     def setup_mqtt(self, client_id: Optional[str] = None) -> mqtt.Client:

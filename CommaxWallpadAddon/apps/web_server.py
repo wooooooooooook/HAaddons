@@ -13,6 +13,7 @@ import paho.mqtt.client as mqtt # type: ignore
 from packet_handler import PacketHandler
 from mqtt_handler import MQTTHandler
 from utils import checksum
+from logger import LoggerClass
 
 if TYPE_CHECKING:
     from main import WallpadController

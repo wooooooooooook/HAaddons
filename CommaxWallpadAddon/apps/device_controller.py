@@ -8,32 +8,32 @@
 """
 
 import json
-import logging
 from typing import Dict, Any, Optional
+from logger import LoggerClass
 
 class DeviceController:
     """
     월패드의 각 기기들의 상태를 관리하는 클래스입니다.
     
     Attributes:
-        HOMESTATE (Dict[str, str]): 각 기기의 현재 상태를 저장하는 딕셔너리
-        logger (logging.Logger): 로깅을 위한 Logger 인스턴스
-        mqtt_client (Any): MQTT 클라이언트 인스턴스
-        STATE_TOPIC (str): MQTT 상태 토픽 형식
+        HOMESTATE (Dict[str, Any]): 각 기기의 현재 상태를 저장하는 딕셔너리
+        logger (LoggerClass): 로깅을 위한 Logger 인스턴스
+        mqtt_handler: MQTT 핸들러 인스턴스
+        state_topic (str): MQTT 상태 토픽 형식
     """
     
-    def __init__(self, mqtt_client: Any, logger, state_topic: str) -> None:
+    def __init__(self, mqtt_handler, logger: LoggerClass, state_topic: str) -> None:
         """
         DeviceController 클래스를 초기화합니다.
         
         Args:
-            mqtt_client (Any): MQTT 클라이언트 인스턴스
-            logger (Logger): 로깅을 위한 Logger 인스턴스
+            mqtt_handler: MQTT 핸들러 인스턴스
+            logger (LoggerClass): 로깅을 위한 Logger 인스턴스
             state_topic (str): MQTT 상태 토픽 형식
         """
-        self.HOMESTATE: Dict[str, str] = {}
+        self.HOMESTATE: Dict[str, Any] = {}
         self.logger = logger
-        self.mqtt_client = mqtt_client
+        self.mqtt_handler = mqtt_handler
         self.STATE_TOPIC = state_topic
 
     def publish_state(self, device_id: str, state_type: str, value: str) -> None:
@@ -54,7 +54,7 @@ class DeviceController:
         if current_state != value:
             self.HOMESTATE[state_id] = value
             topic = self.STATE_TOPIC.format(device_id, state_type)
-            self.mqtt_client.publish(topic, value, retain=True)
+            self.mqtt_handler.publish(topic, value, retain=True)
 
     async def update_light(self, device_id: int, state: str) -> None:
         """

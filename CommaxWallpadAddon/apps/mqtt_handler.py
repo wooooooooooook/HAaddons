@@ -14,14 +14,12 @@ import asyncio
 import re
 import time
 import telnetlib3 # type: ignore
-from typing import Dict, Any, Optional, List, Set, TypedDict, Callable, TYPE_CHECKING
+from typing import Dict, Any, Optional, List, Set, TypedDict
 from packet_handler import PacketHandler
 from device_controller import DeviceController
 from utils import checksum, verify_checksum
+from logger import LoggerClass
 
-
-if TYPE_CHECKING:
-    from logger import LoggerClass
 
 class QueueItem(TypedDict):
     """큐에 저장되는 메시지 아이템의 구조를 정의합니다."""
@@ -454,7 +452,7 @@ class MQTTHandler:
                     except ValueError:
                         continue
                         
-                    # 필수 바이트 위치의 값들이 모두 일���하는지 확인
+                    # 필수 바이트 위치의 값들이 모두 일치하는지 확인
                     match = True
                     try:
                         for pos in required_bytes:

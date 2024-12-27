@@ -1,7 +1,7 @@
 import logging
 import sys
 
-class LoggerInstance:
+class LoggerClass:
     def __init__(self, debug=False, elfin_log=False, mqtt_log=False):
         # 로거 생성
         self.logger = logging.getLogger('ComMaxWallpad')

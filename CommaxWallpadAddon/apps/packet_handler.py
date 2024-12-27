@@ -1,9 +1,9 @@
 from typing import Dict, Any, Optional, List
 from utils import checksum
-from logger import LoggerInstance
+from logger import LoggerClass
 
 class PacketHandler:
-    def __init__(self, device_structure: Dict[str, Any], logger: LoggerInstance):
+    def __init__(self, device_structure: Dict[str, Any], logger: LoggerClass):
         self.DEVICE_STRUCTURE = device_structure
         self.logger = logger
 

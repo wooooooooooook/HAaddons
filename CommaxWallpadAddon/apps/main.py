@@ -4,13 +4,13 @@ import yaml # type: ignore #PyYAML
 import time
 import asyncio
 from typing import Dict, Any, Optional
-from logger import LoggerInstance
+from logger import LoggerClass
 from mqtt_handler import MQTTHandler
 from web_server import WebServer
 from utils import checksum
 
 class WallpadController:
-    def __init__(self, config: dict, logger: LoggerInstance) -> None:
+    def __init__(self, config: dict, logger: LoggerClass) -> None:
         self.config = config
         self.logger = logger
         self.share_dir = '/share'
@@ -276,7 +276,7 @@ class WallpadController:
 if __name__ == '__main__':
     with open('/data/options.json') as file:
         CONFIG = json.load(file)
-    logger = LoggerInstance(debug=CONFIG['DEBUG'], elfin_log=CONFIG['elfin_log'], mqtt_log=CONFIG['mqtt_log'])
+    logger = LoggerClass(debug=CONFIG['DEBUG'], elfin_log=CONFIG['elfin_log'], mqtt_log=CONFIG['mqtt_log'])
     logger.info("########################################################")
     logger.info("'Commax Wallpad Addon by ew11-mqtt'을 시작합니다.")
     controller = WallpadController(CONFIG, logger)

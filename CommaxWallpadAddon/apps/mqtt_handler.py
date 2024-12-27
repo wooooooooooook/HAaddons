@@ -21,7 +21,7 @@ from utils import checksum, verify_checksum
 
 
 if TYPE_CHECKING:
-    from logger import LoggerInstance
+    from logger import LoggerClass
 
 class QueueItem(TypedDict):
     """큐에 저장되는 메시지 아이템의 구조를 정의합니다."""
@@ -61,7 +61,7 @@ class MQTTHandler:
         loop (Optional[asyncio.AbstractEventLoop]): 이벤트 루프
     """
 
-    def __init__(self, config: Dict[str, Any], logger: LoggerInstance, device_structure: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], logger: LoggerClass, device_structure: Dict[str, Any]):
         self.config = config
         self.logger = logger
         self.DEVICE_STRUCTURE = device_structure

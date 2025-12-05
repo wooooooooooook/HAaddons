@@ -6,4 +6,4 @@
 - [Commax Wallpad Add-on](https://github.com/wooooooooooook/HAaddons/tree/master/CommaxWallpadAddon)
 - [Commax Wallpad Beta](https://github.com/wooooooooooook/HAaddons/tree/master/CommaxWallpadAddon_beta)
 - [HeatMap Builder Add-on](https://github.com/wooooooooooook/HAaddons/tree/master/HeatMapBuilder)
-- [Universal Wallpad Add-on](https://github.com/wooooooooooook/HAaddons/tree/master/UniversalWallpadAddon) – Svelte 5 기반의 범용 월패드 제어 패널과 프론트엔드 개발 환경을 제공합니다.
+- [Homenet2MQTT Add-on](https://github.com/wooooooooooook/HAaddons/tree/main/Homenet2MQTT)

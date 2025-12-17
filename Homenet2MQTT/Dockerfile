@@ -56,25 +56,9 @@ COPY --from=builder /app /app
 # Environment setup
 ENV NODE_ENV=production
 
-# Setup run script
-COPY hassio-addon/run.sh /run.sh
-RUN chmod +x /run.sh
-
-CMD [ "/run.sh" ]
-WORKDIR /app
-
-# Install runtime dependencies
-# bash: for run.sh script
-# jq: for parsing options.json
-# gcompat: provides glibc compatibility for native modules (like serialport) built in the debian stage
-RUN apk add --no-cache bash jq gcompat
-
-# Copy application from builder
-# This copies everything including node_modules and built dist folders
-COPY --from=builder /app /app
-
-# Environment setup
-ENV NODE_ENV=production
+# Inject Log Collector API Key
+ARG LOG_COLLECTOR_API_KEY
+ENV LOG_COLLECTOR_API_KEY=$LOG_COLLECTOR_API_KEY
 
 # Setup run script
 COPY hassio-addon/run.sh /run.sh

@@ -4,6 +4,5 @@
 
 ## 제공 애드온
 - [Commax Wallpad Add-on](https://github.com/wooooooooooook/HAaddons/tree/master/CommaxWallpadAddon)
-- [Commax Wallpad Beta](https://github.com/wooooooooooook/HAaddons/tree/master/CommaxWallpadAddon_beta)
 - [HeatMap Builder Add-on](https://github.com/wooooooooooook/HAaddons/tree/master/HeatMapBuilder)
 - [Homenet2MQTT Add-on](https://github.com/wooooooooooook/HAaddons/tree/main/Homenet2MQTT)

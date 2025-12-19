@@ -1,5 +1,5 @@
 name: "Homenet2MQTT (Dev)"
-version: "dev-20251218-2230"
+version: "dev-20251219-0152"
 slug: "h2m-dev"
 description: "Bridge between RS485 HomeNet devices and MQTT (supports multi-port/topic mapping)"
 url: "https://github.com/wooooooooooook/RS485-HomeNet-to-MQTT-bridge"
@@ -20,7 +20,7 @@ options:
   mqtt_user: "addons"
   mqtt_passwd: ""
   config_files:
-    - commax.homenet_bridge.yaml
+    - default.homenet_bridge.yaml
   mqtt_topic_prefix: homenet2mqtt
 hassio_role: default
 hassio_api: true

@@ -1,4 +1,11 @@
 # Commax Wallpad Addon for Home Assistant
+------
+# **‼️Deprecated**
+
+이 애드온은 더이상 유지보수되지 않습니다.
+[Homenet2MQTT 애드온](https://github.com/wooooooooooook/HAaddons/tree/main/Homenet2MQTT)을 이용해주세요.
+
+------
 
 코맥스 월패드를 Home Assistant에 연동하기 위한 애드온입니다.
 EW-11 전용입니다. usb-serial 통신은 아직 지원하지 않습니다.

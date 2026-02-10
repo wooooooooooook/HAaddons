@@ -4,13 +4,9 @@
             "name": "Log Level",
             "description": "Set the logging level. (Default: INFO) Setting to DEBUG or TRACE may cause performance degradation."
         },
-        "use_supervisor_mqtt": {
-            "name": "Use Home Assistant MQTT Integration",
-            "description": "Connect to the MQTT broker through Home Assistant's MQTT integration (enables auto-login). If enabled, the MQTT credentials below will be ignored. If disabled, you must enter the MQTT URL, username, and password."
-        },
         "mqtt_url": {
             "name": "MQTT URL",
-            "description": "URL of the MQTT broker."
+            "description": "URL of the MQTT broker. (Address when using mosquitto addon: mqtt://core-mosquitto:1883)"
         },
         "mqtt_need_login": {
             "name": "MQTT Require Login",
@@ -18,11 +14,11 @@
         },
         "mqtt_user": {
             "name": "MQTT Username",
-            "description": "Username for MQTT broker authentication."
+            "description": "Username for MQTT broker authentication. Leave empty for auto-login."
         },
         "mqtt_passwd": {
             "name": "MQTT Password",
-            "description": "Password for MQTT broker authentication."
+            "description": "Password for MQTT broker authentication. Leave empty for auto-login."
         },
         "mqtt_topic_prefix": {
             "name": "MQTT Topic Prefix",

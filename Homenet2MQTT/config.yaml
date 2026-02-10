@@ -1,5 +1,5 @@
 name: Homenet2MQTT
-version: 2.6.5
+version: 2.6.6
 breaking_versions: [2.0.0]
 slug: h2m
 description: Bridge between RS485 HomeNet devices and MQTT (supports multi-port/topic mapping).
@@ -7,7 +7,6 @@ url: https://github.com/wooooooooooook/homenet2mqtt
 arch:
   - aarch64
   - amd64
-  - armv7
 startup: application
 boot: auto
 image: "nubiz/homenet2mqtt"
@@ -15,17 +14,6 @@ map:
   - type: homeassistant_config
     read_only: false
     path: /homeassistant
-options:
-  log_level: info
-  mqtt_url: mqtt://core-mosquitto:1883
-  mqtt_need_login: true
-  mqtt_user: ""
-  mqtt_passwd: ""
-  config_files:
-    - default.homenet_bridge.yaml
-  mqtt_topic_prefix: homenet2mqtt
-  discovery_enabled: true
-  timezone: ""
 hassio_role: default
 init: false
 hassio_api: true
@@ -33,9 +21,22 @@ auth_api: true
 uart: true
 services:
   - mqtt:need
+options:
+  log_level: info
+  mqtt_topic_prefix: homenet2mqtt
+  discovery_enabled: true
+  use_supervisor_mqtt: true
+  mqtt_url: ""
+  mqtt_need_login: true
+  mqtt_user: ""
+  mqtt_passwd: ""
+  config_files:
+    - default.homenet_bridge.yaml
+  timezone: ""
 schema:
   log_level: list(trace|debug|info|warning|error|fatal)
-  mqtt_url: str
+  use_supervisor_mqtt: bool
+  mqtt_url: str?
   mqtt_need_login: bool
   mqtt_user: str?
   mqtt_passwd: str?

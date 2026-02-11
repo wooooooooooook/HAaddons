@@ -1,5 +1,5 @@
 name: "Homenet2MQTT (Dev)"
-version: "dev-20260211-0204"
+version: "dev-20260211-0445"
 slug: "h2m-dev"
 description: "Bridge between RS485 HomeNet devices and MQTT (supports multi-port/topic mapping)"
 url: "https://github.com/wooooooooooook/homenet2mqtt"

@@ -1,5 +1,5 @@
 name: "Homenet2MQTT (Dev)"
-version: "dev-20260410-0440"
+version: "dev-20260410-0741"
 slug: "h2m-dev"
 description: "Bridge between RS485 HomeNet devices and MQTT (supports multi-port/topic mapping)"
 url: "https://github.com/wooooooooooook/homenet2mqtt"
@@ -33,7 +33,7 @@ options:
     - default.homenet_bridge.yaml
   timezone: ""
 schema:
-  log_level: list(trace|debug|info|warning|error|fatal)
+  log_level: list(trace|debug|info|warn|error|fatal)
   use_supervisor_mqtt: bool
   mqtt_url: str?
   mqtt_need_login: bool

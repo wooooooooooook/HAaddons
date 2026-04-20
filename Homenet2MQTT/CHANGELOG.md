@@ -1,6 +1,9 @@
 ** ⚠️ 업데이트 전 백업 필수❗ **
-- 오류가 있으면 homeasssutant 카페, 깃헙, 디스코드 등으로 알려주세요.
+- 오류가 있으면 homeasssutant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
+v2.11.1
+- fix: log level을 warning으로 설정시 crash발생 오류 수정
+- fix: 설정과정에서 scripts가 중복으로 추가되는 오류 수정
 
 v2.11.0
 - beta를 종료하고 stable 버전으로 운영합니다

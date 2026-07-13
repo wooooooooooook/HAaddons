@@ -1,5 +1,5 @@
 name: Homenet2MQTT (Dev)
-version: dev-20260713-0632
+version: dev-20260713-0908
 breaking_versions:
   - 2.0.0
 slug: h2m-dev
@@ -37,7 +37,6 @@ options:
   config_files:
     - default.homenet_bridge.yaml
   timezone: ''
-  integration_type: mqtt
 schema:
   log_level: list(trace|debug|info|warn|error|fatal)
   use_supervisor_mqtt: bool
@@ -50,7 +49,6 @@ schema:
   config_files:
     - str
   timezone: str?
-  integration_type: list(mqtt|matter|log)
 ingress: true
 ingress_port: 3000
 ingress_stream: true

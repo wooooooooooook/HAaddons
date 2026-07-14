@@ -1,5 +1,5 @@
 name: Homenet2MQTT (Dev)
-version: dev-20260713-0939
+version: dev-20260714-0138
 breaking_versions:
   - 2.0.0
 slug: h2m-dev

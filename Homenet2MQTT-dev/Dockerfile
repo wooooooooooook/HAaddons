@@ -23,12 +23,6 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 # Copy source code
 COPY . .
 
-# Update package.json version if VERSION arg is provided
-ARG VERSION
-RUN if [ -n "$VERSION" ]; then \
-      sed -i "0,/\"version\": \".*\"/s//\"version\": \"$VERSION\"/" package.json; \
-    fi
-
 # Build everything (fast on host)
 # core is built here too to provide types for service, but will be rebuilt in target stage
 RUN --mount=type=cache,target=/app/.turbo \
@@ -61,26 +55,14 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 # Copy source code
 COPY . .
 
-# Update package.json version if VERSION arg is provided
-ARG VERSION
-RUN if [ -n "$VERSION" ]; then \
-      sed -i "0,/\"version\": \".*\"/s//\"version\": \"$VERSION\"/" package.json; \
-    fi
-
 # Copy pre-built artifacts from common-builder
 COPY --from=common-builder /app/packages/ui/dist ./packages/ui/dist
 COPY --from=common-builder /app/packages/service/dist ./packages/service/dist
 COPY --from=common-builder /app/packages/service/static ./packages/service/static
 
 # Build Core for Target Architecture
-ARG TARGETARCH
-ARG TARGETVARIANT
-# Use non-turbo build for arm v7 to save resources
-RUN if [ "$TARGETARCH" = "arm" ] && [ "$TARGETVARIANT" = "v7" ]; then \
-      pnpm --filter @rs485-homenet/core build:simple; \
-    else \
-      pnpm --filter @rs485-homenet/core build; \
-    fi
+# Use turbo build as requested (dev addon does not support armv7)
+RUN pnpm turbo build --filter=@rs485-homenet/core
 
 # Remove development dependencies to reduce size of node_modules
 # We must do this BEFORE removing workspace packages that are in 'dependencies'
@@ -154,7 +136,7 @@ RUN --mount=type=secret,id=LOG_COLLECTOR_API_KEY \
     fi
 
 # Setup run script
-COPY hassio-addon/run.sh /run.sh
+COPY hassio-addon-dev/run.sh /run.sh
 RUN chmod +x /run.sh
 
 ENTRYPOINT [ "/sbin/tini", "--", "/run.sh" ]

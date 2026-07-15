@@ -1,5 +1,5 @@
 name: Homenet2Matter (Dev)
-version: dev-20260715-1438
+version: dev-20260715-1514
 breaking_versions:
   - 2.0.0
 slug: h2m-matter-dev

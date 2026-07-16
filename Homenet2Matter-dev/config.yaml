@@ -1,5 +1,5 @@
 name: Homenet2Matter (Dev)
-version: dev-20260716-0910
+version: dev-20260716-1034
 breaking_versions:
   - 2.0.0
 slug: h2m-matter-dev
@@ -25,7 +25,7 @@ options:
   log_level: info
   config_files:
     - default.homenet_bridge.yaml
-  timezone: ''
+  timezone: Asia/Seoul
 schema:
   log_level: list(trace|debug|info|warn|error|fatal)
   config_files:

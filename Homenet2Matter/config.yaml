@@ -1,5 +1,5 @@
 name: Homenet2Matter
-version: 3.0.2
+version: 3.0.3
 breaking_versions:
   - 2.0.0
 slug: h2m-matter

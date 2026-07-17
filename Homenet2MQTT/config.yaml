@@ -1,5 +1,5 @@
 name: Homenet2MQTT
-version: 3.0.1
+version: 3.0.2
 breaking_versions:
   - 2.0.0
 slug: h2m
@@ -31,8 +31,7 @@ options:
   mqtt_need_login: true
   mqtt_user: ''
   mqtt_passwd: ''
-  config_files:
-    - default.homenet_bridge.yaml
+  config_files: []
   timezone: Asia/Seoul
 schema:
   log_level: list(trace|debug|info|warn|error|fatal)

@@ -1,6 +1,6 @@
 {
   "name": "Heatmap Builder",
-  "version": "0.4.0",
+  "version": "0.4.3",
   "slug": "heatmapbuilder",
   "url": "https://github.com/wooooooooooook/HeatMapBuilder/tree/main/hassio-addon",
   "description": "평면도와 센서위치를 기반으로 센서 값 히트맵을 그립니다.",

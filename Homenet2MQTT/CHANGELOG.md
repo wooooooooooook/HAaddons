@@ -1,8 +1,19 @@
 ** ⚠️ 업데이트 전 백업 권장 **
 - 오류가 있으면 homeassistant [카페](https://cafe.naver.com/koreassistant), [깃헙](https://github.com/wooooooooooook/homenet2mqtt), [디스코드](https://discord.gg/kGwhUBMe5z) 등으로 알려주세요.
 
-v3.1.1
-⚠️ 업데이트 후 `h2m설정 - 애플리케이션관리 - MQTT 메시지 초기화`를 실행하시기바랍니다.
+v3.2.0
+- add: LG airconditioner protocol 지원(https://github.com/jourdant/esphome-lgap)
+- feat: `xor_final(0xNN)` 및 `xor_final_no_header(0xNN)` 체크섬 지원
+- fix: samsung hvac 설정 중 command변수가 `xstr`대신 `x`로 잘못들어간 부분 수정
+- fix: 갤러리의 Bestin 에너지 센서, Ezville 디밍 조명, Samsung HVAC 스니펫 수정
+
+
+v3.1.2 (matter 전용)
+- fix: Matter에서 기기를 조작한 직후 상태가 이전 상태로 되돌아가거나 명령 처리 중 오류가 발생할 수 있는 문제 수정
+  - 환기장치(fan), 밝기, 잠금, 선택(Select) 관련 기기에서 발생할 수 있었습니다.
+
+v3.1.1 (mqtt 전용)
+> ⚠️ 업데이트 후 `h2m설정 - 애플리케이션관리 - MQTT 메시지 초기화`를 실행하시기바랍니다.
 - fix: portId가 중복되거나 엔티티 ID의 .가 /로 바뀌는 문제를 수정
 - fix: optimistic: true이지만 restore_mode가 복원 모드가 아닌(ALWAYS_OFF/ALWAYS_ON) 엔티티가 낡은 캐시 값으로 덮어써지는 문제 수정
 
@@ -43,7 +54,6 @@ v3.0.0
   - 이제 h2m은 homenet2mqtt와 homenet2matter모두를 의미합니다.
   - **기존 h2mqtt사용지분들은 별도의 조치없이 그대로 이용할 수 있습니다.** 
   - h2mqtt와 h2matter는 같은 코드를 공유하며 편의를 위해 별도의 앱으로 분리했습니다.
-  - h2matter를 이용하려면 별도의 h2matter 앱(애드온)을 설치하거나 도커로 설치시 integration type을 matter로 명시하면됩니다. 
   - matter는 다양한 테스트환경을 준비하기어려워 **오류가 많을것으로 예상**됩니다..
 - feat: 분석탭에 h2m과 mqtt 혹은 matter 사이 통신을 로깅하는 인터페이스로그 추가
 - fix: `optimistic: true`인 엔티티에서 `command_*`를 비워둔경우 패킷전송 시도를 하지 않도록 수정.: 여전히 오류가 있어서 다시 수정
@@ -69,7 +79,7 @@ v2.15.0 - 2.15.1
 
 
 v2.14.0
-- feat: 자동화 trigger에 id를 추가하여 이를 통해 자동화내에서 분기처리가 가능하도록 했습니다. [문서보기](https://homenet2mqtt-docs.vercel.app/guide/automation.html#%E1%84%90%E1%85%B3%E1%84%85%E1%85%B5%E1%84%80%E1%85%A5-triggers)
+- feat: 자동화 trigger에 id를 추가하여 이를 통해 자동화내에서 분기처리가 가능하도록 했습니다. [문서보기](https://homenet2mqtt-docs.vercel.app/guide/automation.html#%E1%84%90%E1%85%B3%E1%84%85%E1%85%B5%E1%82%AC-triggers)
 - feat: 자동화 action - update_state의 target_id가 CEL도 받을 수 있도록 개선. [문서보기](https://homenet2mqtt-docs.vercel.app/guide/automation.html#update-state)
 - fix: `restore_mode` 사용 시 복원된 상태가 MQTT 브로커로 다시 발행되지 않아 대시보드에 상태 정보가 유실되던 문제 수정
 - fix: 자동화 `send_packet` 실행 시 CEL 평가 오류 등이 발생했을 때 에러로 처리되어 활동로그에 기록되도록 개선
@@ -103,7 +113,6 @@ v2.11.5
 
 v2.11.4
 - fix: mqtt 연결 끊김 후 재연결시 offline상태가 안풀리는 문제 수정
-
 
 v2.11.3
 - fix: 갤러리 댓글 기능이 homeassistant ingress환경에서는 작동하지 않는 문제 개선

@@ -1,5 +1,5 @@
 name: Homenet2MQTT (Dev)
-version: dev-20261022-2004
+version: dev-20261023-0910
 breaking_versions:
   - 2.0.0
 slug: h2m-dev
@@ -52,4 +52,8 @@ schema:
 ingress: true
 ingress_port: 3000
 ingress_stream: true
+ports:
+  3001/tcp: null
+ports_description:
+  3001/tcp: Agent API (optional)
 panel_icon: mdi:crop-landscape

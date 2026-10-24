@@ -1,5 +1,5 @@
 name: Homenet2Matter
-version: 3.3.0
+version: 3.4.0
 breaking_versions:
   - 2.0.0
 slug: h2m-matter
@@ -25,11 +25,13 @@ options:
   log_level: info
   config_files: []
   timezone: Asia/Seoul
+  agent_api_enabled: false
 schema:
   log_level: list(trace|debug|info|warn|error|fatal)
   config_files:
     - str
   timezone: str?
+  agent_api_enabled: bool?
 ingress: true
 ingress_port: 3000
 ingress_stream: true

@@ -60,6 +60,10 @@ if [ -f "$CONFIG_PATH" ]; then
   fi
   export TIMEZONE=$(jq --raw-output '.timezone // ""' $CONFIG_PATH)
 
+  # Agent API: 애드온 옵션은 사용 토글만 노출합니다.
+  # 토큰·포트·패킷 전송 허용은 웹 UI에서 관리됩니다.
+  export AGENT_API_ENABLED=$(jq --raw-output '.agent_api_enabled // false' $CONFIG_PATH)
+
   CONFIG_FILES=$(jq --raw-output '.config_files // [] | join(",")' $CONFIG_PATH)
   LEGACY_CONFIG_FILE=$(jq --raw-output '.config_file // ""' $CONFIG_PATH)
   
@@ -85,6 +89,7 @@ else
   export DISCOVERY_ENABLED="${DISCOVERY_ENABLED:-false}"
   export CONFIG_FILES="${CONFIG_FILES:-}"
   export INTEGRATION_TYPE="${INTEGRATION_TYPE:-mqtt}"
+  export AGENT_API_ENABLED="${AGENT_API_ENABLED:-false}"
   
   # CONFIG_ROOT 환경변수 또는 기본값 /config 사용
   HA_CONFIG_DIR="${CONFIG_ROOT:-/config}"
@@ -117,8 +122,16 @@ fi
 
 export CONFIG_ROOT="$HA_CONFIG_DIR"
 
+if [ -f "$HA_CONFIG_DIR/ui-auth.json" ]; then
+  UI_AUTH_STATE="password configured"
+else
+  UI_AUTH_STATE="not configured (set it on first UI access)"
+fi
+
 echo "Starting homenet2mqtt..."
 echo "Configuration:"
+echo "  PORT: $PORT"
+echo "  UI_AUTH: $UI_AUTH_STATE"
 echo "  LOG_LEVEL: $LOG_LEVEL"
 echo "  MQTT_URL: $MQTT_URL"
 echo "  CONFIG_FILES: $CONFIG_FILES"
@@ -128,6 +141,11 @@ echo "  MQTT_USER: $MQTT_USER"
 echo "  MQTT_TOPIC_PREFIX: $MQTT_TOPIC_PREFIX"
 echo "  TIMEZONE: $TIMEZONE"
 echo "  DISCOVERY_ENABLED: $DISCOVERY_ENABLED"
+if [ "$AGENT_API_ENABLED" == "true" ]; then
+  echo "  AGENT_API: enabled (token, port and packet-send are managed in the web UI)"
+else
+  echo "  AGENT_API: disabled (agent_api_enabled=false)"
+fi
 
 # Run the service with restart flag support for initialization flow
 while true; do
